@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace TheCodingMachine\Yaco\ServiceProvider;
 
 
+use Puli\Discovery\Api\Discovery;
+use Puli\Discovery\Binding\ClassBinding;
 use TheCodingMachine\Yaco\Compiler;
 use TheCodingMachine\Yaco\Definition\AliasDefinition;
 use TheCodingMachine\Yaco\Definition\FactoryCallDefinition;
@@ -22,6 +24,37 @@ class ServiceProviderLoader
     public function __construct(Compiler $compiler)
     {
         $this->compiler = $compiler;
+    }
+
+    /**
+     * Discovers service provider class names using Puli.
+     *
+     * @param Discovery $discovery
+     * @return string[] Returns an array of service providers.
+     */
+    public function discover(Discovery $discovery) : array {
+        $bindings = $discovery->findBindings('container-interop/service-provider');
+        $serviceProviders = [];
+
+        foreach ($bindings as $binding) {
+            if ($binding instanceof ClassBinding) {
+                $serviceProviders[] = $binding->getClassName();
+            }
+        }
+        return $serviceProviders;
+    }
+
+    /**
+     * Discovers and loads the service providers using Puli.
+     *
+     * @param Discovery $discovery
+     */
+    public function discoverAndLoad(Discovery $discovery) {
+        $serviceProviders = $this->discover($discovery);
+
+        foreach ($serviceProviders as $serviceProvider) {
+            $this->load($serviceProvider);
+        }
     }
 
     public function load(string $serviceProviderClassName)
@@ -74,7 +107,7 @@ class ServiceProviderLoader
 
     }
 
-    private function getDecoratedServiceName($serviceName) {
+    private function getDecoratedServiceName(string $serviceName) : string {
         $counter = 1;
         while ($this->compiler->has($serviceName.'_decorated_'.$counter)) {
             $counter++;
