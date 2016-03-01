@@ -8,7 +8,13 @@ This package is a bridge between [container-interop's service providers](http://
 
 Using this package, you can use Yaco to generate PSR-11 compliant containers that contain the services provided by container-interop's service providers.
 
-## Usage
+## Installation
+
+```sh
+composer require thecodingmachine/yaco-service-provider
+```
+
+## Loading a service provider into Yaco
 
 ```php
 use TheCodingMachine\Yaco\Compiler;
@@ -29,3 +35,12 @@ $code = $compiler->compile('MyContainer');
 file_put_contents(__DIR__.'/MyContainer.php', $code);
 ```
 
+## Autodiscovering service providers using Puli
+
+If the service providers you are loading are publishing themselves on Puli, you can easily use Puli's discovery mechanism to load the services:
+
+```php
+// The discoverAndLoad function takes a Puli discovery instance in parameter.
+// It will discover and load service providers automatically.
+$serviceProviderLoader->discoverAndLoad($discovery)
+```
