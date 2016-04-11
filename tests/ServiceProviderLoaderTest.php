@@ -40,6 +40,12 @@ class ServiceProviderLoaderTest extends \PHPUnit_Framework_TestCase
         $result = $myContainer->get('serviceA');
         $this->assertInstanceOf('\\stdClass', $result);
         $this->assertEquals('my_value', $result->serviceB->parameter);
+
+        $alias = $myContainer->get('alias');
+        $this->assertSame($alias, $result);
+
+        $param = $myContainer->get('param');
+        $this->assertSame(42, $param);
     }
 
     public function testLoadServiceProviderWithOverride()
