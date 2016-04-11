@@ -21,7 +21,7 @@ use TheCodingMachine\Yaco\Compiler;
 use TheCodingMachine\Yaco\ServiceProvider\ServiceProviderLoader;
 
 // Create your YACO compiler.
-$container = new Container();
+$compiler = new Compiler();
 
 // Create your service provider loader
 $serviceProviderLoader = new ServiceProviderLoader($compiler);
