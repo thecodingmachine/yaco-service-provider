@@ -4,12 +4,16 @@ declare(strict_types=1);
 namespace TheCodingMachine\Yaco\ServiceProvider;
 
 
+use Interop\Container\Definition\DefinitionInterface;
 use Puli\Discovery\Api\Discovery;
 use Puli\Discovery\Binding\ClassBinding;
 use TheCodingMachine\Yaco\Compiler;
 use TheCodingMachine\Yaco\Definition\AliasDefinition;
+use TheCodingMachine\Yaco\Definition\DumpableInterface;
 use TheCodingMachine\Yaco\Definition\FactoryCallDefinition;
 use TheCodingMachine\Yaco\Definition\Reference;
+use TheCodingMachine\Yaco\DefinitionConverter;
+use TheCodingMachine\Yaco\DefinitionConverterInterface;
 
 class ServiceProviderLoader
 {
@@ -19,11 +23,20 @@ class ServiceProviderLoader
     private $compiler;
 
     /**
+     * @var DefinitionConverterInterface
+     */
+    private $converter;
+
+    /**
      * @param Compiler $compiler
      */
-    public function __construct(Compiler $compiler)
+    public function __construct(Compiler $compiler, DefinitionConverterInterface $converter = null)
     {
         $this->compiler = $compiler;
+        if ($converter === null) {
+            $converter = new DefinitionConverter();
+        }
+        $this->converter = $converter;
     }
 
     /**
@@ -65,16 +78,16 @@ class ServiceProviderLoader
 
         $serviceFactories = call_user_func([$serviceProviderClassName, 'getServices']);
 
-        foreach ($serviceFactories as $serviceName => $methodName) {
-            $this->registerService($serviceName, $serviceProviderClassName, $methodName);
+        foreach ($serviceFactories as $serviceName => $callable) {
+            $this->registerService($serviceName, $serviceProviderClassName, $callable);
         }
     }
 
-    private function registerService(string $serviceName, string $className, string $methodName) {
+    private function registerService(string $serviceName, string $className, callable $callable) {
         if (!$this->compiler->has($serviceName)) {
-            $factoryDefinition = new FactoryCallDefinition($serviceName, $className, $methodName, [new ContainerDefinition()]);
+            $definition = $this->getServiceDefinitionFromCallable($serviceName, $className, $callable, [new ContainerDefinition()]);
 
-            $this->compiler->addDumpableDefinition($factoryDefinition);
+            $this->compiler->addDumpableDefinition($definition);
         } else {
             // The new service will be created under the name 'xxx_decorated_y'
             // The old service will be moved to the name 'xxx_decorated_y.inner'
@@ -96,15 +109,30 @@ class ServiceProviderLoader
 
             $callbackWrapperDefinition = new CallbackWrapperDefinition($callbackWrapperName, $innerDefinition);
 
-            $factoryDefinition = new FactoryCallDefinition($serviceName, $className, $methodName, [new ContainerDefinition(), $callbackWrapperDefinition]);
+            $definition = $this->getServiceDefinitionFromCallable($serviceName, $className, $callable, [new ContainerDefinition(), $callbackWrapperDefinition]);
 
-
-            $this->compiler->addDumpableDefinition($factoryDefinition);
+            $this->compiler->addDumpableDefinition($definition);
             $this->compiler->addDumpableDefinition($innerDefinition);
             $this->compiler->addDumpableDefinition($callbackWrapperDefinition);
             $this->compiler->addDumpableDefinition(new AliasDefinition($oldServiceName, $serviceName));
         }
 
+    }
+
+    private function getServiceDefinitionFromCallable(string $serviceName, string $className, callable $callable, array $params) : DumpableInterface {
+        if ($callable instanceof DefinitionInterface) {
+            return $this->converter->convert($serviceName, $callable);
+        }
+        if (is_array($callable) && is_string($callable[0])) {
+            return new FactoryCallDefinition($serviceName, $callable[0], $callable[1], $params);
+        }
+        // This is an object or a callback... we need to call the getServices method of the service provider at runtime.
+        $factoryParams = [
+            $className,
+            $serviceName,
+            $params
+        ];
+        return new FactoryCallDefinition($serviceName, ServiceFactory::class, 'create', $factoryParams);
     }
 
     private function getDecoratedServiceName(string $serviceName) : string {

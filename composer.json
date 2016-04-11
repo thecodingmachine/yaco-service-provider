@@ -19,8 +19,15 @@
         "thecodingmachine/yaco": "~0.4.0",
         "puli/discovery": "^1.0-beta9@beta"
     },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/xhuberty/assembly"
+        }
+    ],
     "require-dev": {
         "phpunit/phpunit": "~5.0",
+        "mnapoli/assembly": "dev-callable-service-providers",
         "satooshi/php-coveralls": "~1.0"
     },
     "minimum-stability": "dev",

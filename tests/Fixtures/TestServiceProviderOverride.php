@@ -9,7 +9,7 @@ class TestServiceProviderOverride implements ServiceProvider
     public static function getServices()
     {
         return [
-            'serviceA' => 'overrideServiceA'
+            'serviceA' => [TestServiceProviderOverride::class, 'overrideServiceA']
         ];
     }
 
