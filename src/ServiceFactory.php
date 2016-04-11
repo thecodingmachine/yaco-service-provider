@@ -12,7 +12,7 @@ namespace TheCodingMachine\Yaco\ServiceProvider;
  */
 class ServiceFactory
 {
-    public function create(string $serviceProviderClassName, string $serviceName, array $params)
+    public static function create(string $serviceProviderClassName, string $serviceName, array $params)
     {
         $services = call_user_func([$serviceProviderClassName, 'getServices']);
 
